@@ -6,6 +6,7 @@ export default function RegistroScreen({ navigation }: any) {
 
     const [correo, setcorreo] = useState("")
     const [contrasenia, setcontrasenia] = useState("")
+    const [nombre, setnombre] = useState("")
 
     async function registro() {
         const { data, error } = await supabase.auth.signUp({
@@ -17,15 +18,36 @@ export default function RegistroScreen({ navigation }: any) {
         console.log(error);
 
         if (data.user != null) {
+            let id = data.user.id.replace(".","-")
+
+            guardarUsuario(id)
             navigation.navigate("Login")
         } else {
             alert("ERROR")
         }
     }
 
+    async function guardarUsuario(uid: String) {
+        const { error } = await supabase
+            .from('jugadores')
+            .insert
+            ({
+                id: uid,
+                name: nombre,
+                email: correo,
+            })
+    }
+
     return (
         <View style={styles.container}>
             <Text style={styles.title}>Crear cuenta</Text>
+
+            <TextInput
+                placeholder="Nombre"
+                autoCapitalize="none"
+                style={styles.input}
+                onChangeText={(texto) => setnombre(texto)}
+            />
 
             <TextInput
                 placeholder="Correo electrónico"
