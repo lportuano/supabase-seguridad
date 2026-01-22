@@ -1,13 +1,53 @@
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native'
-import React from 'react'
+import React, { useEffect, useState } from 'react'
+import { supabase } from '../supabase/config';
 
-export default function PerfilScreen() {
+import * as SecureStore from 'expo-secure-store';
 
-    const user = {
-        name: 'Ana García',
-        age: 28,
-        email: 'ana.garcia@example.com',
-    };
+export default function PerfilScreen({ navigation }: any) {
+
+    const [user, setuser] = useState({} as usuario)
+
+    type usuario = {
+        name: String,
+        email: String,
+        age: number
+    }
+
+    useEffect(() => {
+        traerSesion()
+    }, [])
+
+    //trae la sesion activa
+    async function traerSesion() {
+        const { data, error } = await supabase.auth.getSession()
+        //console.log(data);
+        if (data.session != null) {
+            traerUsuario(data.session.user.id)
+        }
+    }
+
+    //lea tabla del usuario
+    async function traerUsuario(uid: any) {
+        const { data, error } = await supabase
+            .from('jugadores')
+            .select()
+            .eq("id", uid)
+
+        if (data != null) {
+            setuser(data[0])
+        }
+
+        //console.log(data[0]);
+
+    }
+
+    async function cerrarSesion() {
+        const { error } = await supabase.auth.signOut()
+        await SecureStore.deleteItemAsync("token")
+
+        navigation.navigate("Welcome");
+    }
 
     return (
         <View style={styles.container}>
@@ -30,7 +70,9 @@ export default function PerfilScreen() {
                 </View>
             </View>
 
-            <TouchableOpacity style={styles.logoutButton} >
+            <TouchableOpacity
+                style={styles.logoutButton}
+                onPress={() => cerrarSesion()}>
                 <Text style={styles.logoutText}>Cerrar sesión</Text>
             </TouchableOpacity>
         </View>

@@ -14,13 +14,9 @@ export default function RegistroScreen({ navigation }: any) {
             password: contrasenia,
         })
 
-        console.log(data);
-        console.log(error);
-
         if (data.user != null) {
-            let id = data.user.id.replace(".","-")
-
-            guardarUsuario(id)
+            
+            guardarUsuario(data.user.id)
             navigation.navigate("Login")
         } else {
             alert("ERROR")

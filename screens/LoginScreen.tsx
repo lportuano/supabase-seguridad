@@ -1,9 +1,21 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { supabase } from '../supabase/config';
 
+//Biometria
+import * as LocalAuthentication from 'expo-local-authentication';
+import * as SecureStore from 'expo-secure-store';
+
 
 export default function LoginScreen({ navigation }: any) {
+
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+
+  useEffect(() => {
+    revisaBiometria()
+  }, [])
+
 
   async function login() {
     const { data, error } = await supabase.auth.signInWithPassword({
@@ -11,19 +23,55 @@ export default function LoginScreen({ navigation }: any) {
       password: password,
     })
 
-    console.log(data);
-    console.log(error);
-
     if (data.session != null) {
       navigation.navigate("Perfil")
+
+      //2.- Guardar el acces Token en login
+      loginExitoso(data.session?.access_token)
+
     } else {
       Alert.alert("ERROR")
     }
 
   }
 
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  //Login por biometria
+  async function biometria() {
+    const authResultado = await LocalAuthentication.authenticateAsync({
+      promptMessage: "Inicia con biometria"
+    })
+    if (authResultado.success) {
+      console.log("Login exitoso");
+      navigation.navigate("Perfil")
+    }
+  }
+
+  //1.- verificar si la sesion esta activa
+  async function loginExitoso(accesToken: any) {
+    await SecureStore.setItemAsync("token", accesToken)
+    navigation.navigate("Perfil")
+  }
+
+  //3.- verificar si el token es valido
+  async function revisaBiometria(){
+    const token = await SecureStore.getItemAsync("token")
+
+    if( !token ){
+      return false
+    }
+
+    biometria()
+
+  }
+
+  //recuperar usuario
+  async function recuperarUsuario() {
+    const { error } = await supabase.auth.resetPasswordForEmail(email);
+
+    Alert.alert("Solicitud enviada", error?.message || "Revisa tu correo");
+  }
+
+
 
   return (
     <View style={styles.container}>
@@ -56,6 +104,10 @@ export default function LoginScreen({ navigation }: any) {
 
       <TouchableOpacity onPress={() => navigation.navigate('Registro')}>
         <Text style={styles.registerLink}>¿No tienes cuenta? Crear una</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity onPress={() => recuperarUsuario()}>
+        <Text style={styles.registerLink}>¿Olvidaste tu contraseña?</Text>
       </TouchableOpacity>
     </View>
   );
